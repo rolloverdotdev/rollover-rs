@@ -260,15 +260,21 @@ Error code constants: `error_code::INVALID_API_KEY`, `error_code::UNAUTHORIZED`,
 See the [examples](./examples) directory:
 
 - [check_and_track](./examples/check_and_track.rs) - Verify feature access before doing work, then record usage after the operation succeeds
+- [middleware](./examples/middleware.rs) - An HTTP middleware that gates endpoints by verifying usage and recording consumption
 - [credits](./examples/credits.rs) - Protect expensive operations by requiring an available credit balance
+- [metered_api](./examples/metered_api.rs) - Track usage for multiple features across different routes
+- [idempotency](./examples/idempotency.rs) - Avoid double-counting in distributed systems by using idempotency keys
+- [provisioning](./examples/provisioning.rs) - A complete server-side onboarding flow that creates a plan, subscribes a wallet, and grants credits
+- [pricing_page](./examples/pricing_page.rs) - Return plans as JSON for a pricing page, with a single API call fetching each plan and its included features
+- [usage_dashboard](./examples/usage_dashboard.rs) - Pull analytics stats and paginated usage events to display in an admin dashboard
+- [graceful_degradation](./examples/graceful_degradation.rs) - Return a helpful 429 response with usage details and an upgrade path when a wallet hits its limit
+- [multi_feature_gate](./examples/multi_feature_gate.rs) - Check multiple features concurrently before starting an operation that requires all of them
+- [credit_topup](./examples/credit_topup.rs) - Monitor a wallet's credit balance and automatically grant more credits when it drops below a threshold
 - [subscriptions](./examples/subscriptions.rs) - Manage the full subscription lifecycle with listing, filtering, and inspection
-- [plans](./examples/plans.rs) - Create, update, and manage plans and features using the admin API
-- [pagination](./examples/pagination.rs) - Query usage events with both page-by-page and collect-all pagination helpers
+- [pagination](./examples/pagination.rs) - Query usage events for a time range with pagination and aggregate totals by feature and wallet
 - [error_handling](./examples/error_handling.rs) - Handle API errors by inspecting status codes, error codes, and retryability
 - [admin_operations](./examples/admin_operations.rs) - Manage plans, features, subscriptions, invoices, and credit transactions using the admin API
-- [pricing_page](./examples/pricing_page.rs) - Fetch plans for a public pricing page with a single API call
-- [idempotency](./examples/idempotency.rs) - Avoid double-counting in distributed systems by using idempotency keys
-- [graceful_degradation](./examples/graceful_degradation.rs) - Handle billing errors gracefully and return helpful responses when limits are reached
+- [webhooks](./examples/webhooks.rs) - Process real-time events from Rollover via webhook
 
 ## Docs
 
