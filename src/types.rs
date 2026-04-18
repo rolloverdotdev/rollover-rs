@@ -46,7 +46,9 @@ pub struct GrantResult {
     pub granted: i64,
 }
 
-/// A billing plan.
+/// A billing plan whose pricing is hydrated from its latest revision; editing pricing on the
+/// server creates a new revision and `latest_revision_id` advances accordingly so existing
+/// subscribers stay pinned to the price they signed up on.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan {
     pub id: String,
@@ -63,7 +65,9 @@ pub struct Plan {
     #[serde(default)]
     pub auto_assign: bool,
     #[serde(default)]
-    pub is_active: bool,
+    pub is_archived: bool,
+    #[serde(default)]
+    pub latest_revision_id: String,
     #[serde(default)]
     pub sort_order: i32,
     #[serde(default)]
@@ -98,15 +102,20 @@ pub struct Feature {
     pub weight: String,
 }
 
-/// A wallet's subscription to a plan.
+/// A wallet's subscription to a plan, pinned to a specific pricing revision via
+/// `plan_revision_id` so renewals charge the original price even after the plan is edited.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subscription {
     pub id: String,
     pub wallet_address: String,
     pub plan_id: String,
     #[serde(default)]
+    pub plan_revision_id: String,
+    #[serde(default)]
     pub plan_name: String,
     pub status: String,
+    #[serde(default)]
+    pub billing_period: String,
     pub mode: String,
     #[serde(default)]
     pub period_start: String,
@@ -216,13 +225,18 @@ pub struct CreditTransaction {
     pub created_at: String,
 }
 
-/// A billing invoice.
+/// A billing invoice; `chain_id` and `mode` identify which chain it settled on and which
+/// environment it belongs to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Invoice {
     pub id: String,
     pub wallet_address: String,
     #[serde(default)]
     pub subscription_id: String,
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub chain_id: String,
     pub status: String,
     #[serde(default)]
     pub base_amount: String,
@@ -240,6 +254,52 @@ pub struct Invoice {
     pub settled_at: String,
     #[serde(default)]
     pub created_at: String,
+}
+
+/// A payment destination chain configured on an organization for a given mode.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Chain {
+    pub id: String,
+    #[serde(default)]
+    pub org_id: String,
+    pub mode: String,
+    pub chain_id: String,
+    pub pay_to_address: String,
+    #[serde(default)]
+    pub stablecoin_symbol: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub priority: i32,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    pub updated_at: String,
+}
+
+/// Parameters for adding a chain.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreateChainParams {
+    pub chain_id: String,
+    pub pay_to_address: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stablecoin_symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i32>,
+}
+
+/// Parameters for editing a chain; only non-None fields are sent so the rest stay at their
+/// current values.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateChainParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pay_to_address: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stablecoin_symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i32>,
 }
 
 /// Parameters for creating a plan.

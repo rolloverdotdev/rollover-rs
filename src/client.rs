@@ -162,13 +162,13 @@ impl Rollover {
             .await
     }
 
-    pub(crate) async fn patch<B: Serialize, T: DeserializeOwned>(
+    pub(crate) async fn put<B: Serialize, T: DeserializeOwned>(
         &self,
         path: &str,
         query: &[(String, String)],
         body: &B,
     ) -> Result<T, RolloverError> {
-        self.do_request(reqwest::Method::PATCH, path, query, Some(body), None)
+        self.do_request(reqwest::Method::PUT, path, query, Some(body), None)
             .await
     }
 

@@ -89,7 +89,7 @@ async fn test_update_plan() {
     let server = MockServer::start().await;
     org_mock().mount(&server).await;
 
-    Mock::given(method("PATCH"))
+    Mock::given(method("PUT"))
         .and(path("/v1/plans/starter"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "id": "p1", "slug": "starter", "name": "Starter Plus",

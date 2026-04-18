@@ -41,13 +41,23 @@ impl Rollover {
         params: &UpdatePlanParams,
     ) -> Result<Plan, RolloverError> {
         let q = self.admin_query(&[]).await?;
-        self.patch(&format!("/v1/plans/{}", encode(plan_slug)), &q, params)
+        self.put(&format!("/v1/plans/{}", encode(plan_slug)), &q, params)
             .await
     }
 
-    /// Archives a plan by slug.
+    /// Archives a plan by slug, hiding it from new subscribers while existing subscribers
+    /// keep their current subscription on the revision they signed up on.
     pub async fn archive_plan(&self, plan_slug: &str) -> Result<(), RolloverError> {
         let q = self.admin_query(&[]).await?;
+        self.delete_empty(&format!("/v1/plans/{}", encode(plan_slug)), &q)
+            .await
+    }
+
+    /// Hard deletes a plan and all of its revisions; the server returns 409
+    /// `plan_has_subscriptions` when any subscription past or present references the plan, so
+    /// reach for [`Self::archive_plan`] whenever the plan has ever had a subscriber.
+    pub async fn delete_plan(&self, plan_slug: &str) -> Result<(), RolloverError> {
+        let q = self.admin_query(&[("hard", "true")]).await?;
         self.delete_empty(&format!("/v1/plans/{}", encode(plan_slug)), &q)
             .await
     }
@@ -75,7 +85,7 @@ impl Rollover {
         params: &UpdateFeatureParams,
     ) -> Result<Feature, RolloverError> {
         let q = self.admin_query(&[]).await?;
-        self.patch(
+        self.put(
             &format!(
                 "/v1/plans/{}/features/{}",
                 encode(plan_slug),
