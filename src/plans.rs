@@ -1,8 +1,8 @@
 use crate::client::{build_list_query, Rollover};
 use crate::errors::RolloverError;
 use crate::types::{
-    CreateFeatureParams, CreatePlanParams, Feature, ListOptions, Page, Plan, UpdateFeatureParams,
-    UpdatePlanParams,
+    CreatePlanParams, LinkFeatureParams, ListOptions, Page, Plan, PlanFeature,
+    UpdatePlanFeatureParams, UpdatePlanParams,
 };
 
 fn encode(s: &str) -> String {
@@ -62,12 +62,13 @@ impl Rollover {
             .await
     }
 
-    /// Adds a feature to a plan.
-    pub async fn create_feature(
+    /// Links a catalog feature to a plan. If `params.feature_slug` names a feature that
+    /// does not yet exist in the org catalog, the server creates one as a metered feature.
+    pub async fn link_feature(
         &self,
         plan_slug: &str,
-        params: &CreateFeatureParams,
-    ) -> Result<Feature, RolloverError> {
+        params: &LinkFeatureParams,
+    ) -> Result<PlanFeature, RolloverError> {
         let q = self.admin_query(&[]).await?;
         self.post(
             &format!("/v1/plans/{}/features", encode(plan_slug)),
@@ -77,13 +78,13 @@ impl Rollover {
         .await
     }
 
-    /// Updates an existing feature on a plan.
-    pub async fn update_feature(
+    /// Edits the limits or policy on an existing plan-feature link.
+    pub async fn update_plan_feature(
         &self,
         plan_slug: &str,
         feature_slug: &str,
-        params: &UpdateFeatureParams,
-    ) -> Result<Feature, RolloverError> {
+        params: &UpdatePlanFeatureParams,
+    ) -> Result<PlanFeature, RolloverError> {
         let q = self.admin_query(&[]).await?;
         self.put(
             &format!(
@@ -97,8 +98,8 @@ impl Rollover {
         .await
     }
 
-    /// Removes a feature from a plan.
-    pub async fn delete_feature(
+    /// Detaches a feature from a plan. The catalog feature itself is unaffected.
+    pub async fn unlink_feature(
         &self,
         plan_slug: &str,
         feature_slug: &str,

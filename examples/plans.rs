@@ -4,7 +4,7 @@
 //
 //     ROLLOVER_API_KEY=ro_test_... cargo run --example plans
 
-use rollover::{CreateFeatureParams, CreatePlanParams, Rollover, UpdatePlanParams};
+use rollover::{CreatePlanParams, LinkFeatureParams, Rollover, UpdatePlanParams};
 
 #[tokio::main]
 async fn main() {
@@ -45,13 +45,13 @@ async fn main() {
         .unwrap();
     println!("Updated plan: {}", updated.name);
 
-    // Add a feature.
-    let feature = ro
-        .create_feature(
+    // Link a catalog feature to the plan. Unknown feature slugs auto-create a metered
+    // catalog feature on the server.
+    let link = ro
+        .link_feature(
             &slug,
-            &CreateFeatureParams {
-                feature_slug: "api-calls".to_string(),
-                name: "API Calls".to_string(),
+            &LinkFeatureParams {
+                feature_slug: Some("api-calls".to_string()),
                 limit_amount: Some(10000),
                 reset_period: Some("monthly".to_string()),
                 ..Default::default()
@@ -59,13 +59,18 @@ async fn main() {
         )
         .await
         .unwrap();
+    let feature_slug = link
+        .feature
+        .as_ref()
+        .map(|f| f.slug.as_str())
+        .unwrap_or("api-calls");
     println!(
-        "Added feature: {} (limit: {})",
-        feature.feature_slug, feature.limit_amount
+        "Linked feature: {} (limit: {})",
+        feature_slug, link.limit_amount
     );
 
     // Cleanup.
-    ro.delete_feature(&slug, "api-calls").await.unwrap();
+    ro.unlink_feature(&slug, "api-calls").await.unwrap();
     ro.archive_plan(&slug).await.unwrap();
     println!("Cleaned up.");
 }

@@ -1,6 +1,6 @@
 mod common;
 
-use rollover::{CreateFeatureParams, CreatePlanParams, UpdatePlanParams};
+use rollover::{CreatePlanParams, LinkFeatureParams, UpdatePlanParams};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -129,26 +129,33 @@ async fn test_archive_plan() {
 }
 
 #[tokio::test]
-async fn test_create_feature() {
+async fn test_link_feature() {
     let server = MockServer::start().await;
     org_mock().mount(&server).await;
 
     Mock::given(method("POST"))
         .and(path("/v1/plans/starter/features"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "id": "f1", "feature_slug": "api-calls", "name": "API Calls",
-            "limit_amount": 10000, "reset_period": "monthly"
+            "id": "pf-1",
+            "limit_amount": 10000,
+            "reset_period": "monthly",
+            "policy": "hard_block",
+            "feature": {
+                "id": "f-1",
+                "slug": "api-calls",
+                "name": "API Calls",
+                "type": "metered"
+            }
         })))
         .mount(&server)
         .await;
 
     let client = common::test_client(&server).await;
-    let feature = client
-        .create_feature(
+    let link = client
+        .link_feature(
             "starter",
-            &CreateFeatureParams {
-                feature_slug: "api-calls".to_string(),
-                name: "API Calls".to_string(),
+            &LinkFeatureParams {
+                feature_slug: Some("api-calls".to_string()),
                 limit_amount: Some(10000),
                 reset_period: Some("monthly".to_string()),
                 ..Default::default()
@@ -157,12 +164,13 @@ async fn test_create_feature() {
         .await
         .unwrap();
 
-    assert_eq!(feature.feature_slug, "api-calls");
-    assert_eq!(feature.limit_amount, 10000);
+    assert_eq!(link.limit_amount, 10000);
+    let feat = link.feature.expect("nested feature");
+    assert_eq!(feat.slug, "api-calls");
 }
 
 #[tokio::test]
-async fn test_delete_feature() {
+async fn test_unlink_feature() {
     let server = MockServer::start().await;
     org_mock().mount(&server).await;
 
@@ -173,7 +181,7 @@ async fn test_delete_feature() {
         .await;
 
     let client = common::test_client(&server).await;
-    client.delete_feature("starter", "api-calls").await.unwrap();
+    client.unlink_feature("starter", "api-calls").await.unwrap();
 }
 
 #[tokio::test]

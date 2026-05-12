@@ -1,5 +1,33 @@
 use serde::{Deserialize, Serialize};
 
+/// Canonical kind of a feature in the org catalog.
+///
+/// - `Boolean` is an access flag.
+/// - `Metered` is a usage counter with a limit and reset period.
+/// - `Credit` is a pooled balance fed by metered features at a configurable cost.
+/// - `Static` is a non-consumptive numeric cap the consumer app enforces itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FeatureType {
+    Boolean,
+    Metered,
+    Credit,
+    Static,
+}
+
+/// What happens when a subscriber hits the plan-feature limit.
+///
+/// - `HardBlock` rejects the request (default).
+/// - `SoftWarn` lets it through for cycle-end reconciliation; requires `Metered` or `Credit`.
+/// - `Hide` treats the feature as not present at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Policy {
+    HardBlock,
+    SoftWarn,
+    Hide,
+}
+
 /// Result of a feature usage check.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckResult {
@@ -73,7 +101,7 @@ pub struct Plan {
     #[serde(default)]
     pub subscribers: i64,
     #[serde(default)]
-    pub features: Vec<Feature>,
+    pub features: Vec<PlanFeature>,
     #[serde(default)]
     pub metadata: serde_json::Value,
     #[serde(default)]
@@ -84,22 +112,41 @@ pub struct Plan {
     pub last_subscribed_at: String,
 }
 
-/// A metered feature on a plan.
+/// An org-scoped catalog feature. Plans reference features through `PlanFeature` link
+/// rows; the catalog row owns the canonical slug, display name, and type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Feature {
     pub id: String,
-    pub feature_slug: String,
+    pub slug: String,
     pub name: String,
+    #[serde(rename = "type")]
+    pub type_: FeatureType,
+}
+
+/// One feature linked to one plan, carrying the plan-specific limits and the policy that
+/// controls what happens when a subscriber hits them. `feature` holds the catalog row
+/// this link points to on responses.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanFeature {
+    pub id: String,
     #[serde(default)]
     pub limit_amount: i64,
     #[serde(default)]
     pub reset_period: String,
     #[serde(default)]
-    pub credit_cost: i64,
-    #[serde(default)]
     pub overage_price: String,
     #[serde(default)]
     pub weight: String,
+    #[serde(default)]
+    pub credit_cost: i64,
+    #[serde(default = "default_policy")]
+    pub policy: Policy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feature: Option<Feature>,
+}
+
+fn default_policy() -> Policy {
+    Policy::HardBlock
 }
 
 /// A wallet's subscription to a plan, pinned to a specific pricing revision via
@@ -345,11 +392,16 @@ pub struct UpdatePlanParams {
     pub sort_order: Option<i32>,
 }
 
-/// Parameters for creating a feature on a plan.
+/// Parameters for linking a catalog feature to a plan. Supply either `feature_id` or
+/// `feature_slug`; if `feature_slug` names a feature that does not yet exist in the org
+/// catalog, the server creates one as a metered feature. `policy` defaults to `HardBlock`
+/// on the server when omitted; `SoftWarn` requires a `Metered` or `Credit` feature.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct CreateFeatureParams {
-    pub feature_slug: String,
-    pub name: String,
+pub struct LinkFeatureParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feature_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feature_slug: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_amount: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -360,13 +412,13 @@ pub struct CreateFeatureParams {
     pub overage_price: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<Policy>,
 }
 
-/// Parameters for updating a feature. Only non-None fields are sent.
+/// Parameters for editing one plan-feature link. Only non-None fields are sent.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct UpdateFeatureParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+pub struct UpdatePlanFeatureParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_amount: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -377,6 +429,8 @@ pub struct UpdateFeatureParams {
     pub overage_price: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<Policy>,
 }
 
 /// Options for paginated list methods.

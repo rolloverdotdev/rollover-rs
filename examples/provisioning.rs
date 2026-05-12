@@ -5,7 +5,7 @@
 //
 //     ROLLOVER_API_KEY=ro_test_... cargo run --example provisioning
 
-use rollover::{CreateFeatureParams, CreatePlanParams, GrantOptions, Rollover};
+use rollover::{CreatePlanParams, GrantOptions, LinkFeatureParams, Rollover};
 
 #[tokio::main]
 async fn main() {
@@ -33,13 +33,12 @@ async fn main() {
         .unwrap();
     println!("Created plan: {} ({})", plan.name, plan.slug);
 
-    // 2. Add features.
-    let f = ro
-        .create_feature(
+    // 2. Link features to the plan.
+    let link = ro
+        .link_feature(
             &slug,
-            &CreateFeatureParams {
-                feature_slug: "api-calls".to_string(),
-                name: "API Calls".to_string(),
+            &LinkFeatureParams {
+                feature_slug: Some("api-calls".to_string()),
                 limit_amount: Some(10000),
                 reset_period: Some("monthly".to_string()),
                 ..Default::default()
@@ -47,7 +46,12 @@ async fn main() {
         )
         .await
         .unwrap();
-    println!("  Added feature: {} (limit: {})", f.feature_slug, f.limit_amount);
+    let feature_slug = link
+        .feature
+        .as_ref()
+        .map(|f| f.slug.as_str())
+        .unwrap_or("api-calls");
+    println!("  Linked feature: {} (limit: {})", feature_slug, link.limit_amount);
 
     // 3. Subscribe a wallet.
     let wallet = format!(

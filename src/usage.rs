@@ -35,19 +35,17 @@ impl Rollover {
             amount,
         };
 
-        if let Some(opts) = opts {
-            if !opts.idempotency_key.is_empty() {
-                let mut headers = HeaderMap::new();
-                headers.insert(
-                    "Idempotency-Key",
-                    HeaderValue::from_str(&opts.idempotency_key)
-                        .map_err(|e| RolloverError::Config(format!("invalid idempotency key: {}", e)))?,
-                );
-                return self.post_with_headers("/v1/track", &[], &body, headers).await;
-            }
-        }
+        let key = opts
+            .and_then(|o| (!o.idempotency_key.is_empty()).then(|| o.idempotency_key.clone()))
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
-        self.post("/v1/track", &[], &body).await
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Idempotency-Key",
+            HeaderValue::from_str(&key)
+                .map_err(|e| RolloverError::Config(format!("invalid idempotency key: {}", e)))?,
+        );
+        self.post_with_headers("/v1/track", &[], &body, headers).await
     }
 
     /// Returns a paginated list of usage events.

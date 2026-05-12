@@ -7,7 +7,7 @@
 //     ROLLOVER_API_KEY=ro_test_... cargo run --example admin_operations
 
 use rollover::{
-    CreateFeatureParams, CreatePlanParams, GrantOptions, ListOptions, Rollover, UpdatePlanParams,
+    CreatePlanParams, GrantOptions, LinkFeatureParams, ListOptions, Rollover, UpdatePlanParams,
 };
 
 #[tokio::main]
@@ -50,13 +50,12 @@ async fn main() {
         .unwrap();
     println!("Updated plan: {}", updated.name);
 
-    // Add a feature.
-    let feature = ro
-        .create_feature(
+    // Link a catalog feature to the plan.
+    let link = ro
+        .link_feature(
             &slug,
-            &CreateFeatureParams {
-                feature_slug: "requests".to_string(),
-                name: "API Requests".to_string(),
+            &LinkFeatureParams {
+                feature_slug: Some("requests".to_string()),
                 limit_amount: Some(5000),
                 reset_period: Some("monthly".to_string()),
                 ..Default::default()
@@ -64,9 +63,14 @@ async fn main() {
         )
         .await
         .unwrap();
+    let feature_slug = link
+        .feature
+        .as_ref()
+        .map(|f| f.slug.as_str())
+        .unwrap_or("requests");
     println!(
-        "Added feature: {} (limit: {})",
-        feature.feature_slug, feature.limit_amount
+        "Linked feature: {} (limit: {})",
+        feature_slug, link.limit_amount
     );
 
     // Subscribe a wallet and inspect the subscription.
@@ -125,7 +129,7 @@ async fn main() {
     println!("Invoices: {}", invoices.total);
 
     // Cleanup.
-    let _ = ro.delete_feature(&slug, "requests").await;
+    let _ = ro.unlink_feature(&slug, "requests").await;
     let _ = ro.archive_plan(&slug).await;
     println!("Cleaned up.");
 }

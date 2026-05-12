@@ -37,8 +37,9 @@ pub use client::{Rollover, RolloverBuilder};
 pub use errors::{error_code, is_error_code, RolloverError};
 pub use pagination::{collect_all, pages, Iter};
 pub use types::{
-    AnalyticsStats, Chain, CheckResult, CreateChainParams, CreateFeatureParams, CreatePlanParams,
-    CreditBalance, CreditTransaction, Feature, GrantOptions, GrantResult, Invoice, ListOptions,
-    Organization, Page, Plan, RecentEvent, Subscription, TopFeature, TrackOptions, TrackResult,
-    UpdateChainParams, UpdateFeatureParams, UpdatePlanParams, UsageEvent,
+    AnalyticsStats, Chain, CheckResult, CreateChainParams, CreatePlanParams, CreditBalance,
+    CreditTransaction, Feature, FeatureType, GrantOptions, GrantResult, Invoice, LinkFeatureParams,
+    ListOptions, Organization, Page, Plan, PlanFeature, Policy, RecentEvent, Subscription,
+    TopFeature, TrackOptions, TrackResult, UpdateChainParams, UpdatePlanFeatureParams,
+    UpdatePlanParams, UsageEvent,
 };

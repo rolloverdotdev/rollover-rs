@@ -24,10 +24,11 @@ async fn main() {
             println!("    {} day trial", p.trial_days);
         }
         for f in &p.features {
+            let name = f.feature.as_ref().map(|c| c.name.as_str()).unwrap_or("feature");
             if f.limit_amount > 0 {
-                println!("    - {} (limit: {})", f.name, f.limit_amount);
+                println!("    - {} (limit: {})", name, f.limit_amount);
             } else {
-                println!("    - {} (unlimited)", f.name);
+                println!("    - {} (unlimited)", name);
             }
         }
     }
