@@ -128,23 +128,23 @@ let plan = ro.update_plan("starter", &UpdatePlanParams {
 // Archive a plan.
 ro.archive_plan("starter").await?;
 
-// Add a feature to a plan.
-let feature = ro.create_feature("starter", &CreateFeatureParams {
-    feature_slug: "api-calls".to_string(),
-    name: "API Calls".to_string(),
+// Link a catalog feature to a plan.
+let link = ro.link_feature("starter", &LinkFeatureParams {
+    feature_slug: Some("api-calls".to_string()),
     limit_amount: Some(10000),
     reset_period: Some("monthly".to_string()),
+    policy: Some(Policy::HardBlock),
     ..Default::default()
 }).await?;
 
-// Update a feature.
-let feature = ro.update_feature("starter", "api-calls", &UpdateFeatureParams {
+// Edit an existing plan-feature link.
+let link = ro.update_plan_feature("starter", "api-calls", &UpdatePlanFeatureParams {
     limit_amount: Some(20000),
     ..Default::default()
 }).await?;
 
-// Delete a feature.
-ro.delete_feature("starter", "api-calls").await?;
+// Detach a feature from a plan.
+ro.unlink_feature("starter", "api-calls").await?;
 
 // List public pricing for a pricing page.
 let plans = ro.list_pricing("your-org-slug").await?;

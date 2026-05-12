@@ -45,8 +45,7 @@ async fn main() {
         .unwrap();
     println!("Updated plan: {}", updated.name);
 
-    // Link a catalog feature to the plan. Unknown feature slugs auto-create a metered
-    // catalog feature on the server.
+    // Link a catalog feature to the plan.
     let link = ro
         .link_feature(
             &slug,

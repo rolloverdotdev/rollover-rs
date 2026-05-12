@@ -98,7 +98,7 @@ impl Rollover {
         .await
     }
 
-    /// Detaches a feature from a plan. The catalog feature itself is unaffected.
+    /// Detaches a feature from a plan.
     pub async fn unlink_feature(
         &self,
         plan_slug: &str,
