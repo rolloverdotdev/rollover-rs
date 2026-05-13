@@ -60,6 +60,106 @@ pub struct TrackResult {
     pub credit_balance: i64,
 }
 
+/// One feature in a batch check request. Amount is optional; when supplied,
+/// the response's `allowed` reflects whether that many units would succeed.
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchCheckItem {
+    pub feature: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<i64>,
+}
+
+/// One feature's per-feature result inside a batch check response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCheckEntry {
+    pub feature: String,
+    #[serde(default)]
+    pub allowed: bool,
+    #[serde(default)]
+    pub used: i64,
+    #[serde(default)]
+    pub remaining: i64,
+    #[serde(default)]
+    pub limit: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credit_cost: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credit_balance: Option<i64>,
+    #[serde(default)]
+    pub over_limit: bool,
+    #[serde(default)]
+    pub error_code: String,
+    #[serde(default)]
+    pub error_message: String,
+}
+
+/// Cross-feature credit pool math, present only when the batch touches at
+/// least one credit-backed feature.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreditSummary {
+    pub required: i64,
+    pub available: i64,
+    pub allowed: bool,
+}
+
+/// Result of a batch check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchCheckResult {
+    pub wallet: String,
+    pub plan: String,
+    pub results: Vec<BatchCheckEntry>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credit_summary: Option<CreditSummary>,
+}
+
+/// One feature-amount pair in a batch track request.
+#[derive(Debug, Clone, Serialize)]
+pub struct BatchTrackEvent {
+    pub feature: String,
+    pub amount: i64,
+}
+
+/// One event's per-feature result inside a batch track response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchTrackEntry {
+    pub feature: String,
+    #[serde(default)]
+    pub allowed: bool,
+    #[serde(default)]
+    pub used: i64,
+    #[serde(default)]
+    pub remaining: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credit_balance: Option<i64>,
+    #[serde(default)]
+    pub over_limit: bool,
+    #[serde(default)]
+    pub error_code: String,
+    #[serde(default)]
+    pub error_message: String,
+}
+
+/// Result of a batch track. `batch_id` groups every `usage_events` row written
+/// for the batch.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchTrackResult {
+    pub wallet: String,
+    pub plan: String,
+    pub batch_id: String,
+    pub results: Vec<BatchTrackEntry>,
+}
+
+/// Controls how `track_batch` handles per-event failures.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Atomicity {
+    /// Commit each event independently. A blocked feature returns an error
+    /// code in its entry but the rest of the batch still commits.
+    PerEvent,
+    /// Roll back every event in the batch on any per-event failure.
+    AllOrNothing,
+}
+
 /// Credit balance for a wallet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreditBalance {
